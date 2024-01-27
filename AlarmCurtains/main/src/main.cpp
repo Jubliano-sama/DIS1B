@@ -28,10 +28,16 @@ bool readCeilingSensor();
 bool readFloorSensor();
 void initTimeFunctions();
 void setupMotorPins();
+void onPinChange();
 
 // Array of tasks to be executed
 const int amountOfTasks = 2;
 Task tasks[amountOfTasks];
+const int ceilingPin = 7;
+const int floorPin = 7;
+
+volatile int interruptCounter = 0;
+const int interruptPin = 2;
 
 void setup()
 {
@@ -39,6 +45,12 @@ void setup()
 	initTimeFunctions();
 	setupMotorPins();
 	BluetoothSerial.begin(9600);
+
+	// Initialize the pin as an input
+  	pinMode(interruptPin, INPUT_PULLUP);
+
+  	// Attach the interrupt
+  	attachInterrupt(digitalPinToInterrupt(interruptPin), onPinChange, CHANGE);
 
 	// Initialize all tasks as empty
 	for (int i = 0; i < amountOfTasks; i++)
@@ -52,8 +64,11 @@ void setup()
 
 void loop()
 {
+	checkAndResetAtMidnight(resetAllTasks);
 	handleBluetoothData(readBluetoothData, tasks);
 	executeTasks(tasks, amountOfTasks);
+	delay(1000);
+	Serial.println(millisecondsToHHMMSS(getCurrentTimeOfDayMillis()));
 }
 
 // Function to reset all tasks
@@ -111,7 +126,6 @@ void handleBluetoothData(ReadDataFunc readData, Task *tasks)
 		else if (data.startsWith("uptime:"))
 		{
 			Serial.println("setting up task");
-			unsigned long currentTime = getCurrentTimeOfDayMillis();
 			int hour = data.substring(data.indexOf(':') + 2, data.indexOf(':') + 4).toInt();
 			int minute = data.substring(data.lastIndexOf(':') + 1).toInt();
 			tasks[0].function = moveCurtainsUp;
@@ -130,10 +144,12 @@ void handleBluetoothData(ReadDataFunc readData, Task *tasks)
 		else if (data == "up" || data == "1")
 		{
 			Serial.println("Received 'up' command");
+			moveCurtainsUp();
 		}
 		else if (data == "down" || data == "0")
 		{
 			Serial.println("Received 'down' command");
+			moveCurtainsDown();
 		}
 		else
 		{
@@ -150,10 +166,11 @@ void handleBluetoothData(ReadDataFunc readData, Task *tasks)
 
 void moveCurtainsUp()
 {
+	interruptCounter = 0;
 	Serial.println("Time to go up!");
 	motorForward();
 	unsigned long beginTime = millis();
-	for (;;)
+	while(true)
 	{
 		if (millis() - beginTime > 60000UL){
 			Serial.println("something probably broke, aborting");
@@ -174,11 +191,12 @@ void moveCurtainsUp()
 }
 
 void moveCurtainsDown()
-{
+{	
+	interruptCounter = 0;
 	Serial.println("Time to go down!");
 	motorReverse();
 	unsigned long beginTime = millis();
-	for (;;)
+	while(true)
 	{
 		if (millis() - beginTime > 60000UL){
 			Serial.println("something probably broke, aborting");
@@ -198,12 +216,25 @@ void moveCurtainsDown()
 	}
 }
 
+// Returns true if curtain is detected
 bool readCeilingSensor()
 {
-	return false;
+	return !digitalRead(ceilingPin);
 }
 
+// Returns true if curtain is detected
 bool readFloorSensor()
 {
-	return false;
+	return !digitalRead(floorPin);
+} 
+
+void onPinChange() {
+  // Interrupt Service Routine
+  interruptCounter++;
+  // debouncing
+  if (interruptCounter == 5) {
+    // Perform the action
+    motorStop();
+    interruptCounter = 0; // Reset the counter
+  }
 }

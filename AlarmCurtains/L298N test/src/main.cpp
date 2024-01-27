@@ -1,21 +1,21 @@
 #include <Arduino.h>
 
 // Define the L298N motor control pins
-const int motorPin1 = 7; // Input 1
-const int motorPin2 = 8; // Input 2
-const int enablePin = 9; // Enable Pin (PWM Control)
+const int motorPin1 = A1; // Input 1
+const int motorPin2 = A2; // Input 2
+const int enablePin = 6; // Enable Pin (PWM Control)
 
 
 void motorForward() {
   digitalWrite(motorPin1, HIGH);
   digitalWrite(motorPin2, LOW);
-  analogWrite(enablePin, 255); // Full speed
+  analogWrite(enablePin, 128); // Full speed
 }
 
 void motorReverse() {
   digitalWrite(motorPin1, LOW);
   digitalWrite(motorPin2, HIGH);
-  analogWrite(enablePin, 255); // Full speed
+  analogWrite(enablePin, 128); // Full speed
 }
 
 void motorStop() {

@@ -1,6 +1,6 @@
 #include "MotorControl.h"
 
-bool motorIsStopped = true;
+volatile bool motorIsStopped = true;
 
 void motorForward()
 {
