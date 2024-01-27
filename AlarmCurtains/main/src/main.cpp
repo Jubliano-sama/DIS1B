@@ -48,10 +48,10 @@ void setup()
 	BluetoothSerial.begin(9600);
 
 	// Initialize the pin as an input
-  	pinMode(interruptPin, INPUT_PULLUP);
+	pinMode(interruptPin, INPUT_PULLUP);
 
-  	// Attach the interrupt
-  	attachInterrupt(digitalPinToInterrupt(interruptPin), onPinChange, CHANGE);
+	// Attach the interrupt
+	attachInterrupt(digitalPinToInterrupt(interruptPin), onPinChange, CHANGE);
 
 	// Initialize all tasks as empty
 	for (int i = 0; i < amountOfTasks; i++)
@@ -160,32 +160,37 @@ void handleBluetoothData(ReadDataFunc readData, Task *tasks)
 }
 
 void moveCurtainsUp()
-{	
+{
 	moveCurtains(true);
 }
 
 void moveCurtainsDown()
-{	
+{
 	moveCurtains(false);
 }
 
 // up = true, down = false
-void moveCurtains(bool direction){
+void moveCurtains(bool direction)
+{
 	// reset interrupt counter to avoid false overcurrent detection from starting
 	interruptCounter = 0;
 	Serial.println("Time to go down!");
 	bool (*sensorFunction)();
-	if (direction){
+	if (direction)
+	{
 		motorForward();
 		sensorFunction = readCeilingSensor;
-	}else{
+	}
+	else
+	{
 		motorReverse();
 		sensorFunction = readFloorSensor;
 	}
 	unsigned long beginTime = millis();
-	while(true)
+	while (true)
 	{
-		if (millis() - beginTime > 60000UL){
+		if (millis() - beginTime > 60000UL)
+		{
 			Serial.println("something probably broke, aborting");
 			motorStop();
 			break;
@@ -213,15 +218,17 @@ bool readCeilingSensor()
 bool readFloorSensor()
 {
 	return !digitalRead(floorPin);
-} 
+}
 
-void onPinChange() {
-  // Interrupt Service Routine
-  interruptCounter++;
-  // debouncing
-  if (interruptCounter == 5) {
-    // Perform the action
-    motorStop();
-    interruptCounter = 0; // Reset the counter
-  }
+void onPinChange()
+{
+	// Interrupt Service Routine
+	interruptCounter++;
+	// debouncing
+	if (interruptCounter == 5)
+	{
+		// Perform the action
+		motorStop();
+		interruptCounter = 0; // Reset the counter
+	}
 }
