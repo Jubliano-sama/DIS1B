@@ -6,7 +6,7 @@ unsigned long midnightMilliseconds; // Milliseconds at last midnight
 // Function to convert HH:MM to milliseconds after midnight
 unsigned long timeToMilliseconds(int hour, int minute)
 {
-    return (hour * 3600000L) + (minute * 60000L);
+    return (hour * 3600000UL) + (minute * 60000UL);
 }
 
 // Function to update the current time
@@ -27,7 +27,7 @@ void checkAndResetAtMidnight(TaskResetFunc taskResetFunc)
     unsigned long elapsed = millis() - midnightMilliseconds;
     if (elapsed >= 86400000L)
     { // 24 hours in milliseconds
-        midnightMilliseconds += 86400000L;
+        midnightMilliseconds += 86400000UL;
 
         // Reset task execution status for the new day
         taskResetFunc();

@@ -33,6 +33,29 @@ void setupMotorPins();
 const int amountOfTasks = 2;
 Task tasks[amountOfTasks];
 
+void setup()
+{
+	Serial.begin(9600);
+	initTimeFunctions();
+	setupMotorPins();
+	BluetoothSerial.begin(9600);
+
+	// Initialize all tasks as empty
+	for (int i = 0; i < amountOfTasks; i++)
+	{
+		tasks[i].function = nullptr;
+		tasks[i].millisAfterMidnight = 0;
+		tasks[i].executed = false;
+	}
+	Serial.println("Bluetooth device is ready to pair");
+}
+
+void loop()
+{
+	handleBluetoothData(readBluetoothData, tasks);
+	executeTasks(tasks, amountOfTasks);
+}
+
 // Function to reset all tasks
 void resetAllTasks()
 {
@@ -87,19 +110,22 @@ void handleBluetoothData(ReadDataFunc readData, Task *tasks)
 		}
 		else if (data.startsWith("uptime:"))
 		{
+			Serial.println("setting up task");
+			unsigned long currentTime = getCurrentTimeOfDayMillis();
 			int hour = data.substring(data.indexOf(':') + 2, data.indexOf(':') + 4).toInt();
 			int minute = data.substring(data.lastIndexOf(':') + 1).toInt();
 			tasks[0].function = moveCurtainsUp;
 			tasks[0].millisAfterMidnight = timeToMilliseconds(hour, minute);
-			tasks[0].executed = false;
+			tasks[0].executed = getCurrentTimeOfDayMillis() > tasks[0].millisAfterMidnight;
 		}
 		else if (data.startsWith("downtime:"))
 		{
+			Serial.println("setting down task");
 			int hour = data.substring(data.indexOf(':') + 2, data.indexOf(':') + 4).toInt();
 			int minute = data.substring(data.lastIndexOf(':') + 1).toInt();
-			tasks[0].function = moveCurtainsDown;
-			tasks[0].millisAfterMidnight = timeToMilliseconds(hour, minute);
-			tasks[0].executed = false;
+			tasks[1].function = moveCurtainsDown;
+			tasks[1].millisAfterMidnight = timeToMilliseconds(hour, minute);
+			tasks[1].executed = getCurrentTimeOfDayMillis() > tasks[1].millisAfterMidnight;
 		}
 		else if (data == "up" || data == "1")
 		{
@@ -124,9 +150,16 @@ void handleBluetoothData(ReadDataFunc readData, Task *tasks)
 
 void moveCurtainsUp()
 {
+	Serial.println("Time to go up!");
 	motorForward();
+	unsigned long beginTime = millis();
 	for (;;)
 	{
+		if (millis() - beginTime > 60000UL){
+			Serial.println("something probably broke, aborting");
+			motorStop();
+			break;
+		}
 		if (readCeilingSensor())
 		{
 			motorStop();
@@ -142,9 +175,16 @@ void moveCurtainsUp()
 
 void moveCurtainsDown()
 {
+	Serial.println("Time to go down!");
 	motorReverse();
+	unsigned long beginTime = millis();
 	for (;;)
 	{
+		if (millis() - beginTime > 60000UL){
+			Serial.println("something probably broke, aborting");
+			motorStop();
+			break;
+		}
 		if (readFloorSensor())
 		{
 			motorStop();
@@ -166,25 +206,4 @@ bool readCeilingSensor()
 bool readFloorSensor()
 {
 	return false;
-}
-
-void setup()
-{
-	Serial.begin(9600);
-	initTimeFunctions();
-	setupMotorPins();
-	BluetoothSerial.begin(9600);
-	for (int i = 0; i < amountOfTasks; i++)
-	{
-		tasks[i].function = nullptr;
-		tasks[i].millisAfterMidnight = 0;
-		tasks[i].executed = false;
-	}
-	Serial.println("Bluetooth device is ready to pair");
-}
-
-void loop()
-{
-	handleBluetoothData(readBluetoothData, tasks);
-	executeTasks(tasks, amountOfTasks);
 }
