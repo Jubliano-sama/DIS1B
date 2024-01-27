@@ -60,7 +60,7 @@ void executeTasks(Task* tasks, int amountOfTasks) {
     Task& task = tasks[i];
     unsigned long currentTime = getCurrentTimeOfDayMillis();
     if (currentTime >= task.millisAfterMidnight && !task.executed) {
-      task.function();
+      if (task.function != nullptr) task.function();
       task.executed = true;
     }
   }
@@ -74,10 +74,21 @@ String readBluetoothData() {
   return "";
 }
 
+String millisecondsToHHMMSS(unsigned long milliseconds) {
+  int hours = milliseconds / 3600000;
+  int minutes = (milliseconds / 60000) % 60;
+  int seconds = (milliseconds / 1000) % 60;
+
+  return String(hours) + ":" + String(minutes) + ":" + String(seconds);
+}
+
+void moveUp(){
+  Serial.println("moving up");
+}
+
 // Function to handle Bluetooth data
-void handleBluetoothData(ReadDataFunc readData) {
+void handleBluetoothData(ReadDataFunc readData, Task * tasks) {
   String data = readData();
-  
   if (data.length() > 0) {
     if (data.startsWith("current:")) {
       int hour = data.substring(data.indexOf(':') + 2, data.indexOf(':') + 4).toInt();
@@ -87,10 +98,18 @@ void handleBluetoothData(ReadDataFunc readData) {
       Serial.print(hour);
       Serial.print(":");
       Serial.println(minute);
+      Serial.println(millisecondsToHHMMSS(getCurrentTimeOfDayMillis()));
+    } else if (data.startsWith("uptime:")){
+      int hour = data.substring(data.indexOf(':') + 2, data.indexOf(':') + 4).toInt();
+      int minute = data.substring(data.lastIndexOf(':') + 1).toInt();
+      tasks[0].function = moveUp;
+      tasks[0].millisAfterMidnight = timeToMilliseconds(hour, minute);
+      tasks[0].executed = false;
     } else if (data == "up" || data == "1") {
       Serial.println("Received 'up' command");
     } else if (data == "down" || data == "0") {
       Serial.println("Received 'down' command");
+    
     } else {
       // Assuming the rest of the data is time in HH:MM format
       int hour = data.substring(0, data.indexOf(':')).toInt();
@@ -105,12 +124,18 @@ void handleBluetoothData(ReadDataFunc readData) {
 
 void setup() {
   Serial.begin(9600);
+  Serial.println("tested2");
   BluetoothSerial.begin(9600);
+  for (int i = 0; i < amountOfTasks; i++) {
+    tasks[i].function = nullptr;
+    tasks[i].millisAfterMidnight = 0;
+    tasks[i].executed=false;
+  }
   Serial.println("Bluetooth device is ready to pair");
   midnightMilliseconds = millis(); // Assuming the Arduino starts at midnight
 }
 
 void loop() {
-  handleBluetoothData(readBluetoothData);
-  // Additional code for loop can be added here
+  handleBluetoothData(readBluetoothData, tasks);
+  executeTasks(tasks, amountOfTasks);
 }
