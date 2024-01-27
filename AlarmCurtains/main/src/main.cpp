@@ -24,6 +24,7 @@ String readBluetoothData();
 void handleBluetoothData(ReadDataFunc readData, Task *tasks);
 void moveCurtainsUp();
 void moveCurtainsDown();
+void moveCurtains();
 bool readCeilingSensor();
 bool readFloorSensor();
 void initTimeFunctions();
@@ -153,48 +154,34 @@ void handleBluetoothData(ReadDataFunc readData, Task *tasks)
 		}
 		else
 		{
-			// Assuming the rest of the data is time in HH:MM format
-			int hour = data.substring(0, data.indexOf(':')).toInt();
-			int minute = data.substring(data.indexOf(':') + 1).toInt();
-			Serial.print("Received Time: ");
-			Serial.print(hour);
-			Serial.print(":");
-			Serial.println(minute);
+			Serial.println("Received junk");
 		}
 	}
 }
 
 void moveCurtainsUp()
-{
-	interruptCounter = 0;
-	Serial.println("Time to go up!");
-	motorForward();
-	unsigned long beginTime = millis();
-	while(true)
-	{
-		if (millis() - beginTime > 60000UL){
-			Serial.println("something probably broke, aborting");
-			motorStop();
-			break;
-		}
-		if (readCeilingSensor())
-		{
-			motorStop();
-			break;
-		}
-		else if (motorIsStopped)
-		{
-			Serial.println("Motor stopped unexpectedly");
-			break;
-		}
-	}
+{	
+	moveCurtains(true);
 }
 
 void moveCurtainsDown()
 {	
+	moveCurtains(false);
+}
+
+// up = true, down = false
+void moveCurtains(bool direction){
+	// reset interrupt counter to avoid false overcurrent detection from starting
 	interruptCounter = 0;
 	Serial.println("Time to go down!");
-	motorReverse();
+	bool (*sensorFunction)();
+	if (direction){
+		motorForward();
+		sensorFunction = readCeilingSensor;
+	}else{
+		motorReverse();
+		sensorFunction = readFloorSensor;
+	}
 	unsigned long beginTime = millis();
 	while(true)
 	{
@@ -203,7 +190,7 @@ void moveCurtainsDown()
 			motorStop();
 			break;
 		}
-		if (readFloorSensor())
+		if (sensorFunction())
 		{
 			motorStop();
 			break;
