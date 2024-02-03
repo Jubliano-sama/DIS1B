@@ -7,7 +7,7 @@
 typedef String (*ReadDataFunc)();
 typedef void (*TaskFunc)();
 
-SoftwareSerial BluetoothSerial(10, 11); // RX | TX
+SoftwareSerial BluetoothSerial(11, 10); // RX | TX
 
 // Task array to store task functions and their execution status
 struct Task
@@ -24,7 +24,7 @@ String readBluetoothData();
 void handleBluetoothData(ReadDataFunc readData, Task *tasks);
 void moveCurtainsUp();
 void moveCurtainsDown();
-void moveCurtains();
+void moveCurtains(bool direction);
 bool readCeilingSensor();
 bool readFloorSensor();
 void initTimeFunctions();
@@ -34,8 +34,8 @@ void onPinChange();
 // Array of tasks to be executed
 const int amountOfTasks = 2;
 Task tasks[amountOfTasks];
-const int ceilingPin = 7;
-const int floorPin = 7;
+const int ceilingPin = 4;
+const int floorPin = 4;
 
 volatile int interruptCounter = 0;
 const int interruptPin = 2;
@@ -174,7 +174,7 @@ void moveCurtains(bool direction)
 {
 	// reset interrupt counter to avoid false overcurrent detection from starting
 	interruptCounter = 0;
-	Serial.println("Time to go down!");
+	Serial.println("Time to go!");
 	bool (*sensorFunction)();
 	if (direction)
 	{
@@ -195,9 +195,10 @@ void moveCurtains(bool direction)
 			motorStop();
 			break;
 		}
-		if (sensorFunction())
+		else if (sensorFunction())
 		{
 			motorStop();
+			Serial.println("Curtain has reached destination");
 			break;
 		}
 		else if (motorIsStopped)

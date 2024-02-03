@@ -1,9 +1,9 @@
 #include <Arduino.h>
 
 // Define the L298N motor control pins
-const int motorPin1 = A1; // Input 1
-const int motorPin2 = A2; // Input 2
-const int enablePin = 6; // Enable Pin (PWM Control)
+const int motorPin1 = A4; // Input 1
+const int motorPin2 = A3; // Input 2
+const int enablePin = A2; // Enable Pin (PWM Control)
 
 
 void motorForward() {
