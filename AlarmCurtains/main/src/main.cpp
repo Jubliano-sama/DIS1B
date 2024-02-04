@@ -226,7 +226,7 @@ void onPinChange()
 	// Interrupt Service Routine
 	interruptCounter++;
 	// debouncing
-	if (interruptCounter == 5)
+	if (interruptCounter > 20)
 	{
 		// Perform the action
 		motorStop();
